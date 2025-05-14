@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Sheet Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .controls label {
+            margin-right: 15px;
+        }
+        
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+        }
+        
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .answer-sheet {
+            padding: 20px;
+        }
+        
+        .sheet-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .info-fields {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .info-field {
+            display: flex;
+			margin-right: 20px;
+			margin-left: 20px;
+			margin-bottom: 20px;
+			 margin-top: 20px;
+            align-items: center;
+        }
+        
+        .info-field span {
+            margin-right: 20px;
+            white-space: nowrap;
+        }
+        
+        .info-field .rect {
+            height: 30px;
+            border: 1px solid #000;
+            border-radius: 3px;
+        }
+        
+        .info-field.name {
+            flex: 3;
+        }
+        
+        .info-field.student-id {
+            flex: 2;
+        }
+        
+        .info-field.name .rect {
+            width: 100%;
+        }
+        
+        .info-field.student-id .rect {
+            width: 100%;
+        }
+        
+        .questions-container {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 25px;
+            padding-bottom: 40px;
+            background-color: #fafafa;
+            border-radius: 5px;
+            border: 2px solid #333;
+        }
+        
+        .question {
+            display: flex;
+            align-items: center;
+        }
+        
+        .question-number {
+            margin-right: 10px;
+            min-width: 25px;
+            text-align: right;
+        }
+        
+        .options {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .option {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Fixed position markers that stay at page corners */
+        .aruco-markers-container {
+            display: none; /* Hide in normal view */
+        }
+        
+        .aruco-marker {
+            width: 30px;
+            height: 30px;
+            opacity: 0.9;
+        }
+        
+        @media print {
+            .controls {
+                display: none;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* Show markers when printing */
+            .aruco-markers-container {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 1000;
+            }
+            
+            .marker-top-left {
+                position: fixed;
+                top: 0mm;
+                left: 0mm;
+            }
+            
+            .marker-top-right {
+                position: fixed;
+                top: 0mm;
+                right: 0mm;
+            }
+            
+            .marker-bottom-left {
+                position: fixed;
+                bottom: 0mm;
+                left: 0mm;
+            }
+            
+            .marker-bottom-right {
+                position: fixed;
+                bottom: 0mm;
+                right: 0mm;
+            }
+            
+            /* Remove header and footer from print */
+            @page {
+                margin: 5mm;
+                size: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <label>
+                Number of Questions:
+                <input type="number" id="questionCount" min="1" max="100" value="50">
+            </label>
+            <label>
+                Number of Choices per Question:
+                <select id="choiceCount">
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </label>
+            <button id="generateBtn">Generate</button>
+            <button id="printBtn">Print</button>
+        </div>
+        
+        <!-- Fixed markers that will only appear during printing -->
+        <div class="aruco-markers-container">
+            <!-- Marker 0: Top Left -->
+            <svg class="aruco-marker marker-top-left" width="30" height="30" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect x="0" y="0" width="6" height="6" fill="black"></rect><rect width="1" height="1" x="2" y="1" fill="white"></rect><rect width="1" height="1.5" x="2" y="1" fill="white"></rect><rect width="1" height="1" x="2" y="2" fill="white"></rect><rect width="1" height="1" x="4" y="3" fill="white"></rect><rect width="1" height="1.5" x="4" y="3" fill="white"></rect><rect width="1" height="1" x="2" y="4" fill="white"></rect><rect width="1" height="1" x="4" y="4" fill="white"></rect></svg>
+            
+            <!-- Marker 1: Top Right -->
+            <svg class="aruco-marker marker-top-right" width="30" height="30" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect x="0" y="0" width="6" height="6" fill="black"></rect><rect width="1.5" height="1" x="1" y="1" fill="white"></rect><rect width="1" height="1.5" x="1" y="1" fill="white"></rect><rect width="1.5" height="1" x="2" y="1" fill="white"></rect><rect width="1.5" height="1" x="3" y="1" fill="white"></rect><rect width="1" height="1" x="4" y="1" fill="white"></rect><rect width="1" height="1.5" x="4" y="1" fill="white"></rect><rect width="1" height="1" x="1" y="2" fill="white"></rect><rect width="1" height="1.5" x="1" y="2" fill="white"></rect><rect width="1" height="1" x="4" y="2" fill="white"></rect><rect width="1" height="1.5" x="4" y="2" fill="white"></rect><rect width="1" height="1" x="1" y="3" fill="white"></rect><rect width="1" height="1" x="4" y="3" fill="white"></rect><rect width="1" height="1.5" x="4" y="3" fill="white"></rect><rect width="1" height="1" x="4" y="4" fill="white"></rect></svg>
+            
+            <!-- Marker 2: Bottom Left -->
+            <svg class="aruco-marker marker-bottom-left" width="30" height="30" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect x="0" y="0" width="6" height="6" fill="black"></rect><rect width="1" height="1" x="1" y="2" fill="white"></rect><rect width="1" height="1.5" x="1" y="2" fill="white"></rect><rect width="1" height="1" x="1" y="3" fill="white"></rect><rect width="1" height="1.5" x="1" y="3" fill="white"></rect><rect width="1" height="1" x="3" y="3" fill="white"></rect><rect width="1" height="1.5" x="3" y="3" fill="white"></rect><rect width="1.5" height="1" x="1" y="4" fill="white"></rect><rect width="1.5" height="1" x="2" y="4" fill="white"></rect><rect width="1" height="1" x="3" y="4" fill="white"></rect></svg>
+            
+            <!-- Marker 3 (For 4 choices): Bottom Right -->
+            <svg id="marker-4-choices" class="aruco-marker marker-bottom-right" width="30" height="30" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect x="0" y="0" width="6" height="6" fill="black"></rect><rect width="1" height="1" x="2" y="1" fill="white"></rect><rect width="1" height="1" x="4" y="1" fill="white"></rect><rect width="1" height="1" x="4" y="3" fill="white"></rect><rect width="1" height="1.5" x="4" y="3" fill="white"></rect><rect width="1.5" height="1" x="3" y="4" fill="white"></rect><rect width="1" height="1" x="4" y="4" fill="white"></rect></svg>
+            
+            <!-- Marker 4 (For 5 choices): Bottom Right -->
+            <svg id="marker-5-choices" class="aruco-marker marker-bottom-right" width="30" height="30" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" style="display:none;"><rect x="0" y="0" width="6" height="6" fill="black"></rect><rect width="1" height="1" x="2" y="1" fill="white"></rect><rect width="1" height="1" x="4" y="1" fill="white"></rect><rect width="1" height="1" x="3" y="3" fill="white"></rect><rect width="1" height="1.5" x="3" y="3" fill="white"></rect><rect width="1.5" height="1" x="1" y="4" fill="white"></rect><rect width="1.5" height="1" x="2" y="4" fill="white"></rect><rect width="1" height="1" x="3" y="4" fill="white"></rect></svg>
+        </div>
+        
+        <div id="answerSheet" class="answer-sheet">
+            <!-- Answer sheet content will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generateBtn');
+            const printBtn = document.getElementById('printBtn');
+            const questionCountInput = document.getElementById('questionCount');
+            const choiceCountSelect = document.getElementById('choiceCount');
+            const marker4Choices = document.getElementById('marker-4-choices');
+            const marker5Choices = document.getElementById('marker-5-choices');
+            
+            // Generate initial answer sheet
+            generateAnswerSheet();
+            
+            // Add event listeners
+            generateBtn.addEventListener('click', generateAnswerSheet);
+            printBtn.addEventListener('click', function() {
+                window.print();
+            });
+            
+            // Update markers based on choice count
+            choiceCountSelect.addEventListener('change', updateMarkers);
+            
+            function updateMarkers() {
+                const choiceCount = parseInt(choiceCountSelect.value);
+                
+                if (choiceCount === 5) {
+                    marker4Choices.style.display = 'none';
+                    marker5Choices.style.display = 'block';
+                } else {
+                    marker4Choices.style.display = 'block';
+                    marker5Choices.style.display = 'none';
+                }
+            }
+            
+            function generateAnswerSheet() {
+                const questionCount = parseInt(questionCountInput.value) || 50;
+                const choiceCount = parseInt(choiceCountSelect.value) || 4;
+                
+                // Limit inputs to reasonable values
+                if (questionCount < 1) questionCountInput.value = 1;
+                if (questionCount > 100) questionCountInput.value = 100;
+                
+                // Update markers when generating
+                updateMarkers();
+                
+                const answerSheet = document.getElementById('answerSheet');
+                
+                // Create header with name and student ID fields (rectangular boxes instead of lines)
+                const headerHTML = `
+                    <div class="info-fields">
+                        <div class="info-field name">
+                            <span>Name:</span>
+                            <div class="rect"></div>
+                        </div>
+                        <div class="info-field student-id">
+                            <span>Student ID:</span>
+                            <div class="rect"></div>
+                        </div>
+                    </div>
+                `;
+                
+                // Create answer options
+                let questionsHTML = '<div class="questions-container">';
+                
+                for (let i = 1; i <= questionCount; i++) {
+                    let optionsHTML = '';
+                    
+                    for (let j = 0; j < choiceCount; j++) {
+                        const letter = String.fromCharCode(65 + j); // Convert to A, B, C, etc.
+                        optionsHTML += `<div class="option">${letter}</div>`;
+                    }
+                    
+                    questionsHTML += `
+                        <div class="question">
+                            <div class="question-number">${i}.</div>
+                            <div class="options">${optionsHTML}</div>
+                        </div>
+                    `;
+                }
+                
+                questionsHTML += '</div>';
+                
+                // Combine all HTML
+                answerSheet.innerHTML = headerHTML + questionsHTML;
+            }
+        });
+    </script>
+</body>
+</html>
