@@ -133,7 +133,7 @@ class BubbleSheetProcessor:
             x, y, w, h = cv2.boundingRect(c)
             aspect_ratio = w / float(h)
         
-            if area > self.marker_area and 0.9 < aspect_ratio < 1.1:
+            if area > self.marker_area and 0.85 < aspect_ratio < 1.15:
                 bubble_contours.append(c)
         
         # First sort all bubbles by their y-coordinate (top to bottom)
