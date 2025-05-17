@@ -279,36 +279,21 @@ if hasattr(st.session_state, 'processed_data'):
             'PC3': X_pca[:, 2],
             'Student_ID': display_ids,
             'Score': scores,
-            'Color': colors,
-            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels]
+            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels],
+            'Label': [str(l) for l in labels]  # <--- add this line
         })
-        
-        # Create interactive 3D plot with Plotly
-        fig = go.Figure()
-        
-        # Add all students as scatter points
-        fig.add_trace(go.Scatter3d(
-            x=df['PC1'],
-            y=df['PC2'],
-            z=df['PC3'],
-            mode='markers',
-            marker=dict(
-                size=8,
-                color=df['Color'],
-                opacity=0.7
-            ),
-            text=df['Student_ID'],
-            hovertemplate=
-            '<b>%{text}</b><br>' +
-            'Score: %{customdata[0]}<br>' +
-            'Cluster: %{customdata[1]}<br>' +
-            'PC1: %{x:.2f}<br>' +
-            'PC2: %{y:.2f}<br>' +
-            'PC3: %{z:.2f}',
-            customdata=np.stack((df['Score'], df['Cluster']), axis=-1)
-        ))
-        
-        # Update the layout
+
+        import plotly.express as px
+
+        fig = px.scatter_3d(
+            df,
+            x='PC1',
+            y='PC2',
+            z='PC3',
+            color='Label',
+            hover_data=['Student_ID', 'Score', 'Cluster']
+        )
+
         fig.update_layout(
             scene=dict(
                 xaxis_title=f'PC1 ({explained_variance[0]:.2%})',
@@ -316,10 +301,11 @@ if hasattr(st.session_state, 'processed_data'):
                 zaxis_title=f'PC3 ({explained_variance[2]:.2%})',
                 aspectmode='data'
             ),
-            margin=dict(l=0, r=0, b=0, t=0),
-            height=600
+            height=600,
+            margin=dict(l=0, r=0, b=0, t=0)
         )
-        
+
+
         # Show the figure
         st.plotly_chart(fig, use_container_width=True)
         
