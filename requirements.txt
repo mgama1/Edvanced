@@ -1,4 +1,5 @@
-streamlit>=1.28.0
+torch==2.2.2
+streamlit==1.32.2
 pandas>=1.5.0
 numpy==1.26.4  # Specific version known to work with OpenCV
 plotly>=5.0.0
@@ -7,9 +8,8 @@ pillow>=8.0.0
 scikit-learn>=1.0.0
 opencv-python-headless==4.9.0.80
 transformers>=4.20.0
-torch>=1.12.0
 scipy>=1.8.0
 sentencepiece>=0.2.0
-
+openpyxl==3.1.2
 
 
