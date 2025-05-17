@@ -263,12 +263,12 @@ if hasattr(st.session_state, 'processed_data'):
         explained_variance = pca.explained_variance_ratio_
         total_variance = sum(explained_variance)
         
-        colors_scheme = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22']
+        colors_scheme = ['red', 'blue', 'green', 'purple', 'orange']
         colors = []
         
         for label in labels:
             if label == -1:  # Noise points in DBSCAN
-                colors.append('#212121')
+                colors.append('gray')
             else:
                 colors.append(colors_scheme[label % len(colors_scheme)])
         
@@ -279,36 +279,50 @@ if hasattr(st.session_state, 'processed_data'):
             'PC3': X_pca[:, 2],
             'Student_ID': display_ids,
             'Score': scores,
-            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels],
-            'Label': [str(l) for l in labels]  # <--- add this line
+            'Color': colors,
+            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels]
         })
 
-        import plotly.express as px
+        # Create interactive 3D plot with Plotly
+        fig = go.Figure()
 
-        fig = px.scatter_3d(
-            df,
-            x='PC1',
-            y='PC2',
-            z='PC3',
-            color='Label',
-            hover_data=['Student_ID', 'Score', 'Cluster']
-        )
-        fig.update_traces(marker=dict(size=4, opacity=1))
+        # Add all students as scatter points
+        fig.add_trace(go.Scatter3d(
+            x=df['PC1'],
+            y=df['PC2'],
+            z=df['PC3'],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=df['Color'],
+                opacity=0.7
+            ),
+            text=df['Student_ID'],
+            hovertemplate=
+            '<b>%{text}</b><br>' +
+            'Score: %{customdata[0]}<br>' +
+            'Cluster: %{customdata[1]}<br>' +
+            'PC1: %{x:.2f}<br>' +
+            'PC2: %{y:.2f}<br>' +
+            'PC3: %{z:.2f}',
+            customdata=np.stack((df['Score'], df['Cluster']), axis=-1)
+        ))
+
+        # Update the layout
         fig.update_layout(
-            height=600,
-            margin=dict(l=0, r=0, b=0, t=0),
             scene=dict(
-                xaxis_title='PC1',
-                yaxis_title='PC2',
-                zaxis_title='PC3',
-                aspectmode='cube'
-            )
+                xaxis_title=f'PC1 ({explained_variance[0]:.2%})',
+                yaxis_title=f'PC2 ({explained_variance[1]:.2%})',
+                zaxis_title=f'PC3 ({explained_variance[2]:.2%})',
+            ),
+            margin=dict(l=0, r=0, b=0, t=0),
+            height=600
         )
 
-
-
-        # Show the figure
-        st.plotly_chart(fig, use_container_width=True)
+        # Convert to HTML and display
+        import plotly.io as pio
+        html_string = pio.to_html(fig, include_plotlyjs='cdn', div_id="cluster-plot")
+        st.components.v1.html(html_string, height=650)
         
         # Add variance explanation
         st.write(f"**Total variance explained by first 3 PCs**: {total_variance:.2%}")
