@@ -268,7 +268,7 @@ if hasattr(st.session_state, 'processed_data'):
         
         for label in labels:
             if label == -1:  # Noise points in DBSCAN
-                colors.append('gray')
+                colors.append('#212121')
             else:
                 colors.append(colors_scheme[label % len(colors_scheme)])
         
