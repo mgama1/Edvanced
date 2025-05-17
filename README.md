@@ -1,7 +1,56 @@
 # Edvanced
 smarter teaching, smarter learning
 ![EDVANCED](https://github.com/user-attachments/assets/fbfd7a1a-2be1-41cf-9560-449dae002ee8)
+# Bubble Sheet Analyzer
 
+A robust, transparent, and explainable cheating detection system for multiple-choice exams using scanned bubble sheets.
+
+## Features
+
+- **Automated Bubble Sheet Processing:** Extracts student answers and IDs from scanned answer sheets using OpenCV, ArUco markers, and OCR.
+- **Scoring:** Compares student responses to a model answer sheet and computes scores.
+- **Cheating Detection:** Identifies suspiciously similar answer patterns using statistical analysis and clustering (DBSCAN, PCA).
+- **Interactive Visualizations:** Displays score distributions, suspicious pairs, and 3D cluster plots for in-depth analysis.
+- **User-Friendly Web App:** Built with Streamlit for easy data upload, analysis, and transparent reporting.
+
+## How It Works
+
+1. **Upload** a model answer sheet and multiple student answer sheets (images), you can find test images in the answers directory.
+2. **Process** the sheets to extract answers and student IDs.
+3. **Analyze** results:
+   - View score distributions and individual results.
+   - Detect and review statistically significant suspicious answer pairs.
+   - Explore clusters of similar answer patterns in 3D.
+4. **Export** results as Excel files for further reporting.
+
+
+
+## Transparency & Explainability
+
+- All detection methods are based on interpretable statistics and clustering.
+- Visualizations and significance tests make results easy to understand and justify.
+
+## Example
+```
+#simulated test data
+from test_data_generator import TestDataGenerator
+
+generator = TestDataGenerator(
+    num_students=50,
+    num_cheaters=2,
+    num_questions=40,
+    num_choices=4,
+    student_mean_acc=0.7,
+    cheater_mean_acc=0.7)
+
+model, students, scores = generator.simulate_answers()
+
+print(f"Model answers shape: {model.shape}")
+print(f"Number of students: {len(students)}")
+print(f"Scores: {scores}")
+```
+![image](https://github.com/user-attachments/assets/25a968bc-f2f6-47c4-9cf0-1dd0fd80b9ec)
+![image](https://github.com/user-attachments/assets/b0b2e539-a733-414b-9ebd-4306cc241d6b)
 
 
 ## cheaters anomaly detecting
