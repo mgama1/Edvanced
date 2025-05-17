@@ -293,7 +293,7 @@ if hasattr(st.session_state, 'processed_data'):
             color='Label',
             hover_data=['Student_ID', 'Score', 'Cluster']
         )
-
+        fig.update_traces(marker=dict(size=4, opacity=1))
         fig.update_layout(
             scene=dict(
                 xaxis_title=f'PC1 ({explained_variance[0]:.2%})',
