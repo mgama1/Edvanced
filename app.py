@@ -251,76 +251,55 @@ if hasattr(st.session_state, 'processed_data'):
     with tab4:
         st.subheader("Cluster Analysis")
         
-        # Apply clustering to detect groups of similar answer patterns
         labels = cd.get_clusters(students)
-        
-        # Apply PCA
         X = np.array([student.flatten() for student in students])
         pca = PCA(n_components=3)
         X_pca = pca.fit_transform(X)
         
-        # Calculate the explained variance
-        explained_variance = pca.explained_variance_ratio_
-        total_variance = sum(explained_variance)
-        
-        colors_scheme = ['red', 'blue', 'green', 'purple', 'orange']
-        colors = []
-        
-        for label in labels:
-            if label == -1:  # Noise points in DBSCAN
-                colors.append('gray')
-            else:
-                colors.append(colors_scheme[label % len(colors_scheme)])
-        
-        # Convert to DataFrame for plotly
-        df = pd.DataFrame({
-            'PC1': X_pca[:, 0],
-            'PC2': X_pca[:, 1],
-            'PC3': X_pca[:, 2],
-            'Student_ID': display_ids,
-            'Score': scores,
-            'Color': colors,
-            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels]
-        })
-        
-        # Create interactive 3D plot with Plotly
-        fig = go.Figure()
-        
-        # Add all students as scatter points
-        fig.add_trace(go.Scatter3d(
-            x=df['PC1'],
-            y=df['PC2'],
-            z=df['PC3'],
-            mode='markers',
-            marker=dict(
-                size=8,
-                color=df['Color'],
-                opacity=0.7
-            ),
-            text=df['Student_ID'],
-            hovertemplate=
-            '<b>%{text}</b><br>' +
-            'Score: %{customdata[0]}<br>' +
-            'Cluster: %{customdata[1]}<br>' +
-            'PC1: %{x:.2f}<br>' +
-            'PC2: %{y:.2f}<br>' +
-            'PC3: %{z:.2f}',
-            customdata=np.stack((df['Score'], df['Cluster']), axis=-1)
-        ))
-        
-        # Update the layout
-        fig.update_layout(
-            scene=dict(
-                xaxis_title=f'PC1 ({explained_variance[0]:.2%})',
-                yaxis_title=f'PC2 ({explained_variance[1]:.2%})',
-                zaxis_title=f'PC3 ({explained_variance[2]:.2%})',
-            ),
-            margin=dict(l=0, r=0, b=0, t=0),
-            height=600
+        # Create WebGL-compatible plot
+        fig = go.Figure(
+            data=[go.Scatter3d(
+                x=X_pca[:, 0],
+                y=X_pca[:, 1],
+                z=X_pca[:, 2],
+                mode='markers',
+                marker=dict(
+                    size=8,
+                    color=labels,
+                    opacity=0.7,
+                    line=dict(width=0)  # Disable borders for better WebGL performance
+                ),
+                text=display_ids
+            )],
+            layout=go.Layout(
+                scene=dict(
+                    xaxis=dict(visible=True),
+                    yaxis=dict(visible=True),
+                    zaxis=dict(visible=True),
+                    aspectmode='data'  # Simpler aspect ratio handling
+                ),
+                margin=dict(l=0, r=0, b=0, t=0)
+            )
         )
         
-        # Show the figure
-        st.plotly_chart(fig, use_container_width=True)
+        # Enable WebGL rendering explicitly
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(backgroundcolor="rgba(0,0,0,0)"),
+                yaxis=dict(backgroundcolor="rgba(0,0,0,0)"),
+                zaxis=dict(backgroundcolor="rgba(0,0,0,0)")
+            ),
+            paper_bgcolor="rgba(0,0,0,0)"
+        )
+        
+        config = {
+            'scrollZoom': True,
+            'displayModeBar': True,
+            'responsive': True,
+            'displaylogo': False
+        }
+        
+        st.plotly_chart(fig, use_container_width=True, config=config)
         
         # Add variance explanation
         st.write(f"**Total variance explained by first 3 PCs**: {total_variance:.2%}")
