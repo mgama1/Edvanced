@@ -263,14 +263,8 @@ if hasattr(st.session_state, 'processed_data'):
         explained_variance = pca.explained_variance_ratio_
         total_variance = sum(explained_variance)
         
-        colors_scheme = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22']
-        colors = []
-        
-        for label in labels:
-            if label == -1:  # Noise points in DBSCAN
-                colors.append('gray')
-            else:
-                colors.append(colors_scheme[label % len(colors_scheme)])
+        # Create cluster labels for display
+        cluster_labels = ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels]
         
         # Convert to DataFrame for plotly
         df = pd.DataFrame({
@@ -279,27 +273,51 @@ if hasattr(st.session_state, 'processed_data'):
             'PC3': X_pca[:, 2],
             'Student_ID': display_ids,
             'Score': scores,
-            'Cluster': ["Cluster " + str(l) if l >= 0 else "Outlier" for l in labels],
-            'Label': [str(l) for l in labels]  # <--- add this line
+            'Cluster': cluster_labels,
+            'Label': labels  # Use numeric labels for coloring
         })
 
-        import plotly.express as px
+        # Create 3D scatter plot with fixed configuration
+        fig = go.Figure(data=[go.Scatter3d(
+            x=df['PC1'],
+            y=df['PC2'],
+            z=df['PC3'],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color=df['Label'],
+                colorscale='Viridis',
+                colorbar=dict(title="Cluster"),
+                showscale=True,
+                opacity=0.8
+            ),
+            text=df['Student_ID'],
+            customdata=np.column_stack((df['Score'], df['Cluster'])),
+            hovertemplate=
+            '<b>%{text}</b><br>' +
+            'PC1: %{x:.2f}<br>' +
+            'PC2: %{y:.2f}<br>' +
+            'PC3: %{z:.2f}<br>' +
+            'Score: %{customdata[0]}<br>' +
+            'Cluster: %{customdata[1]}<br>' +
+            '<extra></extra>'
+        )])
 
-        fig = px.scatter_3d(
-            df,
-            x='PC1',
-            y='PC2',
-            z='PC3',
-            color='Label',
-            hover_data=['Student_ID', 'Score', 'Cluster']
-        )
-        #fig.update_traces(marker=dict(size=4, opacity=1))
+        # Update layout with explicit scene configuration
         fig.update_layout(
+            title="3D Cluster Analysis of Answer Patterns",
+            scene=dict(
+                xaxis_title="PC1",
+                yaxis_title="PC2",
+                zaxis_title="PC3",
+                camera=dict(
+                    eye=dict(x=1.5, y=1.5, z=1.5)
+                ),
+                aspectmode='cube'  # Use 'cube' instead of custom aspectratio
+            ),
             height=600,
-            margin=dict(l=0, r=0, b=0, t=0)
+            margin=dict(l=0, r=0, b=0, t=40)
         )
-
-
 
         # Show the figure
         st.plotly_chart(fig, use_container_width=True)
@@ -323,7 +341,7 @@ if hasattr(st.session_state, 'processed_data'):
                     help="Proportion of variance explained by each principal component",
                     format="%.2f%%",
                     min_value=0,
-                    max_value=max(explained_variance) * 1.1  # To give some headroom in the progress bar
+                    max_value=max(explained_variance) * 1.1
                 )
             }
         )
