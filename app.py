@@ -293,17 +293,12 @@ if hasattr(st.session_state, 'processed_data'):
             color='Label',
             hover_data=['Student_ID', 'Score', 'Cluster']
         )
-        fig.update_traces(marker=dict(size=4, opacity=1))
+        #fig.update_traces(marker=dict(size=4, opacity=1))
         fig.update_layout(
-            scene=dict(
-                xaxis_title=f'PC1 ({explained_variance[0]:.2%})',
-                yaxis_title=f'PC2 ({explained_variance[1]:.2%})',
-                zaxis_title=f'PC3 ({explained_variance[2]:.2%})',
-                aspectmode='data'
-            ),
             height=600,
             margin=dict(l=0, r=0, b=0, t=0)
         )
+
 
 
         # Show the figure
