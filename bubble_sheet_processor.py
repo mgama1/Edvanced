@@ -7,10 +7,12 @@ import matplotlib.pyplot as plt
 import re
 def load_models():
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
-    model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+    model = VisionEncoderDecoderModel.from_pretrained(
+        "microsoft/trocr-base-handwritten", 
+        device_map="auto"  
+    )
+    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     return processor, model
-    
-processor, model = load_models()
 
 class BubbleSheetProcessor:
     def __init__(self, image_path):
