@@ -13,7 +13,7 @@ def load_models():
     )
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     return processor, model
-
+processor, model = load_models()
 class BubbleSheetProcessor:
     def __init__(self, image_path):
         self.image_path = image_path
