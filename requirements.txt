@@ -7,7 +7,7 @@ matplotlib>=3.5.0
 pillow>=8.0.0
 scikit-learn>=1.0.0
 opencv-python-headless==4.9.0.80
-transformers>=4.20.0
+transformers==4.44.2
 scipy>=1.8.0
 sentencepiece>=0.2.0
 openpyxl==3.1.2
