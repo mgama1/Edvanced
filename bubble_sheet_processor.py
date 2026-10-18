@@ -1,19 +1,22 @@
 import cv2
 import numpy as np
+import streamlit as st
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
 import torch
 import matplotlib.pyplot as plt
 import re
+
+
+@st.cache_resource
 def load_models():
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
-    model = VisionEncoderDecoderModel.from_pretrained(
-        "microsoft/trocr-base-handwritten", 
-        device_map="auto"  
-    )
+    model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    model.eval()
     return processor, model
-processor, model = load_models()
+
+
 class BubbleSheetProcessor:
     def __init__(self, image_path):
         self.image_path = image_path
@@ -194,14 +197,16 @@ class BubbleSheetProcessor:
 
         self.answer_matrix = np.array(extracted).reshape(-1, self.nc)
     def detect_student_id(self,drawContours=False):
+        processor, model = load_models()
         id_area=self.warped[0:self.bubbles_area_y, int(self.warped.shape[1]*.75):]
         x, y, w, h = cv2.boundingRect(self.get_largest_contour(id_area))
         
         student_id_img=id_area[y+5:y+h-5, x+5:x+w-5]
         
-        pixel_values = processor(images=student_id_img, return_tensors="pt").pixel_values
+        pixel_values = processor(images=student_id_img, return_tensors="pt").pixel_values.to(model.device)
         # Run inference
-        generated_ids = model.generate(pixel_values,max_length=14,min_length=4,num_beams =2,early_stopping =True,repetition_penalty=.8)
+        with torch.no_grad():
+            generated_ids = model.generate(pixel_values,max_length=14,min_length=4,num_beams =2,early_stopping =True,repetition_penalty=.8)
         student_id = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         self.student_id=re.sub(r'\D', '', student_id)
         if drawContours:
