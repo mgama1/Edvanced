@@ -8,7 +8,7 @@ from PIL import Image
 import os
 import sys
 import tempfile
-from bubble_sheet_processor import BubbleSheetProcessor
+from bubble_sheet_reader import BubbleSheetProcessor
 from cheating_detection import CheatingDetection as cd
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
@@ -59,20 +59,29 @@ if model_file and student_files and st.button("Process Bubble Sheets"):
             
             # Process bubble sheets
             @st.cache_data
-            def process_bubble_sheets(model_path, student_paths):
-                # Initialize processor for model answer
-                model_processor = BubbleSheetProcessor(model_path)
+            def process_bubble_sheets(model_path, student_paths, student_names):
+                # Initialize processor for model answer (no student ID on the model sheet -> skip OCR)
+                model_processor = BubbleSheetProcessor(model_path, read_id=False)
                 _, model_answer_matrix = model_processor.run_pipeline()
                 
                 student_ids = []
                 scores = []
                 student_answer_matrices = []
+                review_flags = []   # question numbers a human should double-check, per student
+                names = []
+                failed = []         # (file name, error) for sheets that could not be read at all
                 
-                for student_path in student_paths:
-                    student_processor = BubbleSheetProcessor(student_path)
-                    student_id, student_matrix = student_processor.run_pipeline()
+                for student_path, student_name in zip(student_paths, student_names):
+                    try:
+                        student_processor = BubbleSheetProcessor(student_path)
+                        student_id, student_matrix = student_processor.run_pipeline()
+                    except Exception as e:
+                        failed.append((student_name, str(e)))
+                        continue
                     student_answer_matrices.append(student_matrix)
                     student_ids.append(student_id)
+                    names.append(student_name)
+                    review_flags.append(student_processor.result.needs_review)
                     # Score is number of fully matched rows (i.e., correct answers)
                     score = np.sum(np.all(student_matrix == model_answer_matrix, axis=1))
                     scores.append(score)
@@ -81,10 +90,13 @@ if model_file and student_files and st.button("Process Bubble Sheets"):
                     'model_answer_matrix': model_answer_matrix,
                     'students_answers_matrices': student_answer_matrices,
                     'students_ids': student_ids,
+                    'students_names': names,
+                    'review_flags': review_flags,
+                    'failed': failed,
                     'scores': scores
                 }
             
-            processed_data = process_bubble_sheets(model_path, student_paths)
+            processed_data = process_bubble_sheets(model_path, student_paths, [f.name for f in student_files])
             
             # Clean up temporary files
             os.unlink(model_path)
@@ -94,7 +106,11 @@ if model_file and student_files and st.button("Process Bubble Sheets"):
             # Store the processed data in session state
             st.session_state.processed_data = processed_data
             
-            st.success("Bubble sheets processed successfully!")
+            n_ok = len(processed_data['scores'])
+            if n_ok:
+                st.success(f"Processed {n_ok} of {len(student_files)} student sheets.")
+            for name, err in processed_data['failed']:
+                st.warning(f"Could not read **{name}**: {err} (skipped - try re-taking the photo)")
             
         except Exception as e:
             st.error(f"Error processing bubble sheets: {e}")
@@ -109,11 +125,16 @@ if hasattr(st.session_state, 'processed_data'):
     model = processed_data['model_answer_matrix']
     scores = processed_data['scores']
     student_ids = processed_data['students_ids']
+    review_flags = processed_data['review_flags']
+    
+    if not students:
+        st.error("No student sheet could be read.")
+        st.stop()
     
     # Format student IDs for display
     display_ids = []
     for i, sid in enumerate(student_ids):
-        if sid.strip():  # If ID was successfully extracted
+        if sid and sid.strip():  # If ID was successfully extracted
             display_ids.append(f"ID: {sid}")
         else:
             display_ids.append(f"Student {i+1}")
@@ -168,11 +189,18 @@ if hasattr(st.session_state, 'processed_data'):
             'Student ID': display_ids,
             'Raw ID': student_ids,
             'Score': scores,
-            'Percentage': [score/total_questions*100 for score in scores]
+            'Percentage': [score/total_questions*100 for score in scores],
+            'Questions to check': [", ".join(map(str, r)) for r in review_flags]
         })
         
+        n_flagged = sum(1 for r in review_flags if r)
+        if n_flagged:
+            st.warning(f"{n_flagged} sheet(s) have questions the reader was not sure about "
+                       "(blank, double-marked, crossed-out or very light marks). "
+                       "See the 'Questions to check' column and verify them on the paper.")
+        
         # Display the table
-        st.dataframe(results_df[['Student ID', 'Score', 'Percentage']], 
+        st.dataframe(results_df[['Student ID', 'Score', 'Percentage', 'Questions to check']], 
                     use_container_width=True,
                     hide_index=True)
         
@@ -250,6 +278,10 @@ if hasattr(st.session_state, 'processed_data'):
     
     with tab4:
         st.subheader("Cluster Analysis")
+        
+        if len(students) < 3:
+            st.info("Cluster analysis needs at least 3 readable student sheets.")
+            st.stop()
         
         # Apply clustering to detect groups of similar answer patterns
         labels = cd.get_clusters(students)
